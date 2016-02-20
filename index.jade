@@ -1,0 +1,33 @@
+- var i = 0
+.progress
+  .progressCompleted 
+    | Completed: 
+    span 0
+  .progressTotal
+    | Total: 
+    span 0
+.panels
+  .panel(data-index="#{i++}", data-advance="radioSingle")
+    h2 Panel #{i}
+    div.radioGroup
+      div
+        input#a(type="radio", name="group-#{i-1}", value="red" )
+        label(for="a") Red
+      div
+        input#b(type="radio", name="group-#{i-1}", value="green" )
+        label(for="b") Green
+      div
+        input#c(type="radio", name="group-#{i-1}", value="blue" )
+        label(for="c") Blue
+  .panel(data-index="#{i++}" data-advance="textSingle")
+    h2 Panel #{i}
+    input#d(type="text", data-callback="updateIsDope", data-validate="isTextLengthLongerThanThree")
+    .validationOutput
+  .panel(data-index="#{i++}", data-state="isDope", data-value="yes")
+    h2 Panel #{i}
+  .panel(data-index="#{i++}")
+    h2 Panel #{i}
+  .panel(data-index="#{i++}")
+    h2 Panel #{i}
+  .panel(data-index="#{i++}")
+    h2 Panel #{i}

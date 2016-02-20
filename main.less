@@ -1,0 +1,89 @@
+@green : #abe298;
+@red   : #ff5656;
+@grey  : #776677;
+
+.panel {
+  opacity: 0;
+  display: none;
+  border: 1px solid @grey;
+  width: 50vw;
+  margin: 1em auto;
+  padding: 1em;
+  text-align: center;
+  h2 {
+    margin: 0 0 10px;
+  }
+  transition: transform .5s,
+    opacity .5s;
+}
+
+.panel--active {
+  opacity: 1;
+  display: block;
+  border: 5px solid;
+}
+
+.panel--isComplete {
+  border-color: @green;
+  animation: leave .5s ease 1;
+}
+
+.panel--hasError {
+  border-color: @red;
+  animation: shake .5s ease 1;
+}
+
+.panel--isNotPresent {
+  display: none;
+}
+
+@keyframes leave {
+  99% {
+    opacity: 0;
+    transform: scale(0) translateY(-100vh);
+  }
+  100 {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes shake {
+  20% {
+    transform: rotate( -2deg)
+  }
+  40% {
+    transform: rotate( 4deg)
+  }
+  60% {
+    transform: rotate( -4deg)
+  }
+  80% {
+    transform: rotate( 2deg)
+  }
+}
+
+// =====
+// inputs
+// =====
+
+.input {
+  display: block;
+  margin: 0 auto 1em;
+}
+
+.input--isValid {
+  border: 2px solid @green;
+}
+
+.input--isNotValid {
+  border: 2px solid @red;
+}
+
+// =====
+// radioGroup
+// =====
+
+.radioGroup {
+
+}
