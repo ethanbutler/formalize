@@ -65,6 +65,7 @@
   // properties:
   // test: anon function, should return true or false
   // message: error message for case of test: false
+  // TODO: set up softfail so that something can not pass validation but still trigger forward
   var Validation = {
     didAnswerYes: {
       test: function( val ){
@@ -83,6 +84,18 @@
         return val.length >= 3
       },
       message: 'Input should be at least three characters.'
+    },
+    isNumeric: {
+      test: function( val ){
+        return $.isNumeric( val )
+      },
+      message: 'Should be a number'
+    },
+    isGoldenState: {
+      test: function( val ){
+        return val === 'Golden State'
+      },
+      message: 'Golden State is your favorite team.'
     }
   }
 
@@ -97,7 +110,7 @@
   //Panel Decorator
   var Panel = function( options ){
     this.$this = $( options.$this )
-    this.$inputs = ( this.$this ).find( 'input' ) //array of all input fields TODO: make this work with select fields, too
+    this.$inputs = ( this.$this ).find( 'input, .btn--affirm' ) //array of all input fields TODO: make this work with select fields, too
     this.index = options.index
     this.hasError = false // optimistically, we're assuming our panels don't have errors before user input
     this.isActive = ( options.index === 0 ) //but only the first panel is active initially
@@ -139,27 +152,61 @@
     }
 
     //provides event listeners to test for panel completion
-    switch( options.advance ){ //TODO: this section. the idea is that upon ANY blur, test all inputs
-      case 'textGroup':
+    switch( options.advance ){
+      case 'affirm':
+        this.$inputs.on( 'click', function(){
+          panels[App.currentPanel].onComplete()
+        } )
+        break
+      case 'textMulti':
         var $inputs = this.$inputs
         var pass = false
         this.$inputs.on( 'blur', function(){
+          var id = $(this).attr('id')
+          if( inputs[id].mustValidate ) inputs[id].doValidate() //if input needs validation, do that
           $inputs.each( function(){
-            pass = $(this).val().length
+            pass = $(this).val().length > 0
+            if( !pass ) return
           } )
+          if( pass ) panels[App.currentPanel].onComplete()
+        } )
+        this.$inputs.on( 'keydown', function(e){ //or on enter
+          if( e.which === 13 ){
+            $(this).blur()
+          }
         } )
         break
       case 'textSingle':
-        this.$inputs.on( 'blur', function(){ //when focus changes, test for completion
-          var id = $(this).attr('id')
+        var id = this.$inputs.attr('id')
+        var handle = function(){
           if( inputs[id].mustValidate ) inputs[id].doValidate() //if input needs validation, do that
           else                          panels[App.currentPanel].onComplete() //if not, just do complete
+        }
+        this.$inputs.on( 'blur', function(){ //when focus changes, test for completion
+          handle()
+        } )
+        this.$inputs.on( 'keydown', function(e){ //or on enter
+          if( e.which === 13 ){
+            $(this).blur()
+          }
+        } )
+        break
+      case 'radioMulti':
+        var groups = this.$this.find( '.radioGroup' )
+        var pass = false
+        groups.on( 'click', function(){
+          groups.each( function(){
+            pass = $(this).find( 'input:checked' ).length > 0
+            if( !pass ) return
+          } )
+          if( pass ) panels[App.currentPanel].onComplete()
         } )
         break
       case 'radioSingle': //this one's pretty simple
         this.$inputs.on( 'click', function(){
           panels[App.currentPanel].onComplete()
         } )
+        break
     }
 
   }
@@ -169,6 +216,7 @@
     this.$this = $( options.$this )
     this.id = options.id
     this.mustValidate = options.validate //whether inputs needs to be validated
+    this.softfail = options.softfail //if we shouldn't throw error on non-validation
     if( options.validate ){ // only assign methods if needed
       this.doValidate = function(){
         var method = this.$this.attr( 'data-validate' ) //type of validation. should be property name of Validation
@@ -181,18 +229,20 @@
           this.$this.addClass( 'input--isValid' )
           this.$this.siblings( '.validationOutput' ).empty() //clear validation message wrapper
           panels[App.currentPanel].onComplete()
-        } else { // if we didnt'
+        } else if( !this.softfail ) { // if we didnt'
           this.$this.addClass( 'input--isNotValid' )
           this.$this.siblings( '.validationOutput' ).text( Validation[method].message ) //add error message to dom
           panels[App.currentPanel].onError( Validation[method].message ) //pass error message to onError handler if needed
         }
-        inputs[id].onValidate( results )
+        if( inputs[id].onValidate ) inputs[id].onValidate( results )
       }
-      this.onValidate = function( didPass ){ //do callback based on whether we passed
-        Callbacks[ options.callback ]( didPass )
-        $( panels ).each( function(){
-          this.setIsPresent() //update state of panels based on callback
-        } )
+      if( options.callback ){
+        this.onValidate = function( didPass ){ //do callback based on whether we passed
+          Callbacks[ options.callback ]( didPass )
+          $( panels ).each( function(){
+            this.setIsPresent() //update state of panels based on callback
+          } )
+        }
       }
     }
   }
@@ -225,7 +275,8 @@
       $this: this,
       id: $(this).attr('id'),
       callback: $(this).attr( 'data-callback' ), //use to update app state based on value
-      validate: $(this).attr( 'data-validate' ) //special treatment for certain fields
+      validate: $(this).attr( 'data-validate' ), //special treatment for certain fields
+      softfail: $(this).attr( 'data-softfail' )
     } )
     inputs[input.id] = input
   } )
